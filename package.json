@@ -1,13 +1,7 @@
 {
   "name": "starlink-visualizer",
   "version": "1.0.0",
-  "description": "Starlink Constellation Visualizer with C++ Backend",
-  "scripts": {
-    "build:cpp": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make visualizer_data && ./visualizer_data",
-    "build": "npm run build:cpp",
-    "start": "cd visualizer && npx serve ."
-  },
-  "keywords": ["spacex", "starlink", "cpp", "threejs"],
+  "description": "Starlink Constellation Visualizer — C++ data engine + Three.js frontend",
   "author": "Stuart Ray",
   "license": "MIT"
 }
