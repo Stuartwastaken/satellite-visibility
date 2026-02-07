@@ -169,6 +169,14 @@ Vec3 geoTo3D(double lat_deg, double lon_deg, double altitude_km) {
 }
 
 // ---- Full multi-shell constellation generator ----
+// Proper Keplerian orbit projection for Walker Delta pattern.
+// Each satellite is parameterized by:
+//   - Orbital plane p -> RAAN = 360 * p / num_planes
+//   - Satellite s in plane -> argument of latitude u = 360 * s / sats_per_plane
+//     + Walker phasing offset (360 / total_sats_in_shell) * p
+// Sub-satellite point:
+//   lat = asin(sin(inclination) * sin(u))
+//   lon = RAAN + atan2(cos(inclination) * sin(u), cos(u))
 std::vector<Satellite> generateFullConstellation(
     const std::vector<OrbitalShell>& shells) {
     std::vector<Satellite> sats;
@@ -176,22 +184,41 @@ std::vector<Satellite> generateFullConstellation(
 
     for (int shell_idx = 0; shell_idx < static_cast<int>(shells.size()); shell_idx++) {
         const auto& shell = shells[shell_idx];
-        for (int p = 0; p < shell.num_planes; p++) {
-            double raan = (360.0 / shell.num_planes) * p;
-            for (int s = 0; s < shell.sats_per_plane; s++) {
-                double true_anomaly = (360.0 / shell.sats_per_plane) * s;
-                double angle = (raan + true_anomaly) * DEG_TO_RAD;
-                double lat = shell.inclination_deg * std::sin(angle);
-                double lon = std::fmod(
-                    raan + true_anomaly *
-                           std::cos(shell.inclination_deg * DEG_TO_RAD),
-                    360.0) - 180.0;
+        double inc_rad = shell.inclination_deg * DEG_TO_RAD;
+        double sin_inc = std::sin(inc_rad);
+        double cos_inc = std::cos(inc_rad);
 
-                Vec3 pos = geoTo3D(lat, lon, shell.altitude_km);
+        // Walker Delta phasing: F=1 pattern
+        // Phase offset per plane = 360 / (num_planes * sats_per_plane)
+        double phase_per_plane = 360.0 /
+            (shell.num_planes * shell.sats_per_plane);
+
+        for (int p = 0; p < shell.num_planes; p++) {
+            double raan_deg = (360.0 / shell.num_planes) * p;
+
+            for (int s = 0; s < shell.sats_per_plane; s++) {
+                // Argument of latitude with Walker phasing
+                double u_deg = (360.0 / shell.sats_per_plane) * s
+                             + phase_per_plane * p;
+                double u_rad = u_deg * DEG_TO_RAD;
+
+                double sin_u = std::sin(u_rad);
+                double cos_u = std::cos(u_rad);
+
+                // Proper Keplerian projection
+                double lat_rad = std::asin(sin_inc * sin_u);
+                double lon_offset = std::atan2(cos_inc * sin_u, cos_u);
+                double lon_deg = raan_deg + lon_offset * RAD_TO_DEG;
+
+                // Normalize longitude to [-180, 180]
+                lon_deg = std::fmod(lon_deg + 540.0, 360.0) - 180.0;
+                double lat_deg = lat_rad * RAD_TO_DEG;
+
+                Vec3 pos = geoTo3D(lat_deg, lon_deg, shell.altitude_km);
 
                 sats.push_back({
                     global_id++,
-                    {lat, lon},
+                    {lat_deg, lon_deg},
                     shell.altitude_km,
                     p,
                     shell_idx,
@@ -883,7 +910,9 @@ std::string buildHandoffJson(const Args& args,
 std::string buildGlobeJson(const std::vector<OrbitalShell>& shells,
                            const std::vector<Satellite>& sats,
                            const std::vector<ISLLink>& links,
-                           const std::vector<GroundStation>& stations) {
+                           const std::vector<GroundStation>& stations,
+                           const std::vector<VisibilityEdge>& vis_edges,
+                           const VisibilityStats& vis_stats) {
     std::ostringstream os;
     os << std::fixed << std::setprecision(6);
 
@@ -944,7 +973,30 @@ std::string buildGlobeJson(const std::vector<OrbitalShell>& shells,
            << "\"z\":" << pos.z
            << "}";
     }
-    os << "]";
+    os << "],";
+
+    // Visibility edges (ground station -> satellite links)
+    os << "\"visibility\":{";
+    os << "\"min_elev_deg\":" << 25.0 << ",";
+    os << "\"edge_count\":" << vis_stats.edge_count << ",";
+    os << "\"edges\":[";
+    for (size_t i = 0; i < vis_edges.size(); i++) {
+        const auto& e = vis_edges[i];
+        if (i) os << ",";
+        os << "[" << e.satellite_id << "," << e.station_id << ","
+           << std::setprecision(2) << e.elevation_deg << ","
+           << e.latency_ms << "]";
+    }
+    os << std::setprecision(6);
+    os << "],";
+
+    // Per-station coverage counts
+    os << "\"coverage\":[";
+    for (size_t i = 0; i < vis_stats.coverage_counts.size(); i++) {
+        if (i) os << ",";
+        os << vis_stats.coverage_counts[i];
+    }
+    os << "]}";
 
     os << "}";
     return os.str();
@@ -973,11 +1025,18 @@ int main(int argc, char** argv) {
     auto isl_links = computeIntraPlaneLinks(globe_sats, shells);
     auto stations = generateGroundStations(args.num_stations);
 
+    // Compute visibility edges (ground station <-> satellite)
+    VisibilityStats vis_stats;
+    auto vis_edges = buildVisibilityEdges(
+        globe_sats, stations, args.min_elevation_deg, vis_stats);
+
     std::cout << "  Globe: " << globe_sats.size() << " satellites, "
               << isl_links.size() << " ISL links, "
+              << vis_edges.size() << " visibility edges, "
               << shells.size() << " shells\n";
 
-    auto globe_json = buildGlobeJson(shells, globe_sats, isl_links, stations);
+    auto globe_json = buildGlobeJson(
+        shells, globe_sats, isl_links, stations, vis_edges, vis_stats);
 
     // ---- Packet router (unchanged) ----
     auto packet_stats = simulatePacketStream(
