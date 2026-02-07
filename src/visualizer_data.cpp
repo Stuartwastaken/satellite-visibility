@@ -356,6 +356,7 @@ struct HandoffDecision {
 
 struct HandoffResult {
     std::vector<HandoffDecision> handoffs;
+    std::vector<int> selected_sat_ids;     // satellites in the optimal chain
     double min_signal_quality = 0.0;
     double total_coverage_time = 0.0;
     double total_gap_time = 0.0;
@@ -367,6 +368,17 @@ public:
     static constexpr double MIN_OVERLAP_SEC = 2.0;
     static constexpr double MIN_SIGNAL_DB = 5.0;
 
+    /**
+     * Maximize total coverage time while keeping handoff signal >= MIN_SIGNAL_DB.
+     *
+     * DP formulation:
+     *   dp[i] = maximum coverage time for any schedule ending at window i
+     *   Transition: dp[i] = max over valid j { dp[j] + (windows[i].end - handoff_time(j,i)) }
+     *   Base case: dp[i] = windows[i].duration()
+     *
+     * This is the correct Starlink formulation: you want maximum uptime,
+     * not maximum signal quality.
+     */
     static HandoffResult schedule(std::vector<VisibilityWindow> windows) {
         HandoffResult result;
         if (windows.empty()) return result;
@@ -375,10 +387,16 @@ public:
                   [](const auto& a, const auto& b) { return a.start_time < b.start_time; });
 
         int n = static_cast<int>(windows.size());
+        // dp[i] = max coverage time for schedule ending at window i
         std::vector<double> dp(n, 0.0);
         std::vector<int> parent(n, -1);
+        // Track the handoff time into each window (start of coverage for window i)
+        std::vector<double> entry_time(n, 0.0);
 
-        for (int i = 0; i < n; i++) dp[i] = windows[i].peak_signal_quality;
+        for (int i = 0; i < n; i++) {
+            dp[i] = windows[i].duration();
+            entry_time[i] = windows[i].start_time;
+        }
 
         for (int i = 1; i < n; i++) {
             for (int j = 0; j < i; j++) {
@@ -390,14 +408,24 @@ public:
                 double signal = std::min(windows[j].signalAt(t), windows[i].signalAt(t));
                 if (signal < MIN_SIGNAL_DB) continue;
 
-                double path_signal = std::min(dp[j], signal);
-                if (path_signal > dp[i]) {
-                    dp[i] = path_signal;
+                // Coverage from this chain: everything up to j's handoff point,
+                // plus window i from handoff time to its end
+                double new_coverage = dp[j] - (windows[j].end_time - t) +
+                                      (windows[i].end_time - t);
+                // Simplified: dp[j] + (windows[i].end_time - windows[j].end_time)
+                // But we need the handoff to happen within the overlap, so:
+                double candidate = dp[j] + (windows[i].end_time - t) -
+                                   (windows[j].end_time - t);
+
+                if (candidate > dp[i]) {
+                    dp[i] = candidate;
                     parent[i] = j;
+                    entry_time[i] = t;
                 }
             }
         }
 
+        // Find the schedule with maximum coverage
         int best_end = 0;
         for (int i = 1; i < n; i++) {
             if (dp[i] > dp[best_end]) best_end = i;
@@ -411,15 +439,21 @@ public:
         }
         std::reverse(selected.begin(), selected.end());
 
-        result.min_signal_quality = dp[best_end];
+        result.total_coverage_time = dp[best_end];
         result.num_handoffs = static_cast<int>(selected.size()) - 1;
+        for (int idx : selected) {
+            result.selected_sat_ids.push_back(windows[idx].satellite_id);
+        }
 
+        // Build handoff decisions and compute min signal
+        double min_signal = 1e9;
         for (int k = 0; k + 1 < static_cast<int>(selected.size()); k++) {
             int a = selected[k];
             int b = selected[k + 1];
             double t = findOptimalHandoffTime(windows[a], windows[b]);
             double overlap = windows[a].end_time - windows[b].start_time;
             double signal = std::min(windows[a].signalAt(t), windows[b].signalAt(t));
+            min_signal = std::min(min_signal, signal);
             result.handoffs.push_back({
                 windows[a].satellite_id,
                 windows[b].satellite_id,
@@ -429,18 +463,13 @@ public:
             });
         }
 
-        if (!selected.empty()) {
-            int last = selected.back();
-            if (result.handoffs.empty()) {
-                result.total_coverage_time = windows[last].duration();
-            } else {
-                result.total_coverage_time +=
-                    windows[last].end_time - result.handoffs.back().handoff_time;
-            }
+        result.min_signal_quality = min_signal < 1e8 ? min_signal : 0.0;
 
+        // Compute gap time over the full timeline
+        if (!selected.empty()) {
             double total_time =
                 windows[selected.back()].end_time - windows[selected.front()].start_time;
-            result.total_gap_time = total_time - result.total_coverage_time;
+            result.total_gap_time = std::max(0.0, total_time - result.total_coverage_time);
         }
 
         return result;
@@ -757,6 +786,13 @@ std::string buildHandoffJson(const Args& args,
            << "\"overlap\":" << h.overlap_duration << ","
            << "\"signal\":" << h.signal_at_handoff
            << "}";
+    }
+    os << "],";
+
+    os << "\"selected\":[";
+    for (size_t i = 0; i < result.selected_sat_ids.size(); i++) {
+        if (i) os << ",";
+        os << result.selected_sat_ids[i];
     }
     os << "],";
 

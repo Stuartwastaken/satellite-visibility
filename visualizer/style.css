@@ -1,72 +1,101 @@
+/* ============================================================
+   SpaceX / Starlink Design System
+   Palette: #000000, #0a0a0a, #141414, #1a1a1a, #ffffff, #e0e0e0,
+            #999999, #cc0000 (SpaceX red)
+   Typography: D-DIN / system sans-serif for UI, monospace for data
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  color: #1a1a1a;
-  background: #f6f7fb;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #e0e0e0;
+  background: #000000;
+  -webkit-font-smoothing: antialiased;
 }
 
 code {
-  background: #eef0f6;
+  font-family: 'JetBrains Mono', monospace;
+  background: #1a1a1a;
   padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 0.9em;
+  font-size: 0.85em;
+  color: #cc0000;
 }
 
+/* ---- Header ---- */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 32px;
-  background: #0f172a;
-  color: #e2e8f0;
+  padding: 20px 32px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
 }
 
 .header h1 {
-  margin: 0 0 6px 0;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .header p {
-  margin: 0;
-  color: #cbd5f5;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: #666666;
 }
 
 .header-actions .badge {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 0.85rem;
+  background: #141414;
+  border: 1px solid #1a1a1a;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #999999;
 }
 
+/* ---- Tabs ---- */
 .tabs {
   display: flex;
-  gap: 10px;
-  padding: 12px 32px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  gap: 0;
+  padding: 0 32px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
 }
 
 .tab-button {
   border: none;
-  background: #e9eef6;
-  color: #1a1a1a;
-  padding: 10px 16px;
-  border-radius: 999px;
+  background: transparent;
+  color: #666666;
+  padding: 12px 20px;
   cursor: pointer;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-button:hover {
+  color: #999999;
 }
 
 .tab-button.active {
-  background: #2563eb;
   color: #ffffff;
+  border-bottom-color: #cc0000;
 }
 
+/* ---- Main ---- */
 main {
-  padding: 24px 32px 40px;
+  padding: 24px 32px 48px;
 }
 
 .tab-panel {
@@ -77,23 +106,32 @@ main {
   display: block;
 }
 
+.panel-header {
+  margin-bottom: 20px;
+}
+
 .panel-header h2 {
-  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .panel-header p {
-  margin: 0 0 16px 0;
-  color: #64748b;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: #666666;
 }
 
+/* ---- Controls ---- */
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
   padding: 12px 16px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
   margin-bottom: 16px;
   align-items: center;
 }
@@ -102,58 +140,131 @@ main {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 
-.controls select,
+.controls select {
+  background: #141414;
+  color: #e0e0e0;
+  border: 1px solid #333333;
+  padding: 6px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .controls input[type="range"] {
-  margin-left: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333333;
+  height: 3px;
+  width: 100px;
+  outline: none;
 }
 
-.controls .checkbox input {
-  margin-right: 6px;
+.controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #cc0000;
+  cursor: pointer;
+  border: none;
 }
 
+.controls input[type="checkbox"] {
+  accent-color: #cc0000;
+  cursor: pointer;
+}
+
+.controls span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: #cc0000;
+  min-width: 30px;
+}
+
+/* ---- Stats Grid ---- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
   margin-bottom: 16px;
 }
 
 .stat-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
   padding: 12px 14px;
 }
 
 .stat-card h4 {
-  margin: 0 0 6px 0;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: 0.7rem;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  margin-bottom: 6px;
 }
 
 .stat-card .value {
-  font-size: 1.1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
   font-weight: 700;
+  color: #ffffff;
 }
 
+/* ---- Canvas ---- */
 .canvas-wrap {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  padding: 0;
+  overflow: hidden;
 }
 
 canvas {
+  display: block;
   width: 100%;
   height: auto;
 }
 
+/* ---- Legend ---- */
+.legend {
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}
+
+/* ---- Footer ---- */
 .footer {
   padding: 16px 32px 24px;
-  color: #64748b;
-  font-size: 0.9rem;
+  color: #444444;
+  font-size: 0.8rem;
+  border-top: 1px solid #1a1a1a;
 }

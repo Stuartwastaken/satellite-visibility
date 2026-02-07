@@ -10,13 +10,10 @@
     <header class="header">
       <div>
         <h1>Starlink C++ Visualizer</h1>
-        <p>
-          Interactive visuals for the C++ interview prep projects:
-          visibility graph, packet routing, and handoff scheduling.
-        </p>
+        <p>Interactive visualizations for satellite visibility, packet routing, and handoff scheduling.</p>
       </div>
       <div class="header-actions">
-        <div class="badge">Data source: <code>visualizer/data/data.js</code></div>
+        <div class="badge">Regenerate: <code>./visualizer_data</code></div>
       </div>
     </header>
 
@@ -27,11 +24,11 @@
     </nav>
 
     <main>
-      <!-- Visibility Graph -->
+      <!-- ============ Visibility Graph ============ -->
       <section id="visibility" class="tab-panel active">
         <div class="panel-header">
           <h2>Satellite Visibility Graph</h2>
-          <p>Lat/Lon projection with per-station visibility edges.</p>
+          <p>Equirectangular projection. Edges show satellite-to-ground-station line-of-sight above the minimum elevation angle.</p>
         </div>
 
         <div class="controls">
@@ -39,41 +36,44 @@
             Station
             <select id="vis-station"></select>
           </label>
-
           <label>
-            Min elevation
+            Min Elevation
             <input id="vis-min-elev" type="range" min="0" max="60" step="1" value="25">
             <span id="vis-min-elev-val">25°</span>
           </label>
-
           <label class="checkbox">
             <input id="vis-show-edges" type="checkbox" checked>
-            Show edges
+            Edges
           </label>
-
           <label class="checkbox">
             <input id="vis-show-sats" type="checkbox" checked>
-            Show satellites
+            Satellites
           </label>
-
           <label class="checkbox">
             <input id="vis-show-stations" type="checkbox" checked>
-            Show stations
+            Stations
           </label>
         </div>
 
         <div class="stats-grid" id="vis-stats"></div>
 
+        <div class="legend" id="vis-legend">
+          <div class="legend-item"><span class="legend-swatch" style="background:#cc0000"></span> Ground station</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#ffffff"></span> Connected satellite</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#333333"></span> Other satellite</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:rgba(204,0,0,0.4);height:2px;width:16px"></span> Visibility edge</div>
+        </div>
+
         <div class="canvas-wrap">
-          <canvas id="vis-canvas" width="1000" height="480"></canvas>
+          <canvas id="vis-canvas" width="1200" height="520"></canvas>
         </div>
       </section>
 
-      <!-- Packet Router -->
+      <!-- ============ Packet Router ============ -->
       <section id="packet" class="tab-panel">
         <div class="panel-header">
-          <h2>Packet Reordering + Priority Routing</h2>
-          <p>Arrival order vs. sequence number (scatter), colored by priority.</p>
+          <h2>Packet Reordering + Priority Router</h2>
+          <p>Scatter plot: X = arrival order, Y = sequence number. The diagonal is perfect in-order delivery. Deviations show reordering.</p>
         </div>
 
         <div class="controls">
@@ -97,28 +97,42 @@
 
         <div class="stats-grid" id="pkt-stats"></div>
 
+        <div class="legend" id="pkt-legend">
+          <div class="legend-item"><span class="legend-swatch" style="background:#cc0000"></span> Control</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#ffffff"></span> Real-time</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#888888"></span> Streaming</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#444444"></span> Bulk</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#333333;height:2px;width:16px"></span> In-order reference</div>
+        </div>
+
         <div class="canvas-wrap">
-          <canvas id="pkt-canvas" width="1000" height="480"></canvas>
+          <canvas id="pkt-canvas" width="1200" height="520"></canvas>
         </div>
       </section>
 
-      <!-- Handoff Scheduler -->
+      <!-- ============ Handoff Scheduler ============ -->
       <section id="handoff" class="tab-panel">
         <div class="panel-header">
           <h2>Satellite Handoff Scheduler</h2>
-          <p>Visibility windows over time with computed handoff points.</p>
+          <p>Gantt chart of satellite visibility windows with signal strength curves. Red lines mark optimal handoff points. Bright bars are the selected chain.</p>
         </div>
 
         <div class="stats-grid" id="handoff-stats"></div>
 
+        <div class="legend" id="handoff-legend">
+          <div class="legend-item"><span class="legend-swatch" style="background:#ffffff"></span> Selected chain</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#333333"></span> Unused window</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:#cc0000;height:2px;width:16px"></span> Handoff point</div>
+        </div>
+
         <div class="canvas-wrap">
-          <canvas id="handoff-canvas" width="1000" height="480"></canvas>
+          <canvas id="handoff-canvas" width="1200" height="520"></canvas>
         </div>
       </section>
     </main>
 
     <footer class="footer">
-      <span>Tip: regenerate data with <code>./visualizer_data</code> for new scenarios.</span>
+      <span>Stuart Ray &mdash; Starlink Interview Prep &mdash; C++ data generator + browser GUI</span>
     </footer>
 
     <script src="data/data.js"></script>
