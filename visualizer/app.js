@@ -1,9 +1,11 @@
 /* ============================================================
    Starlink C++ Visualizer — SpaceX theme
    Black / white / red only. Monospace data. Sharp edges.
+
+   This file handles Packet Router and Handoff Scheduler tabs.
+   The Constellation (3D Globe) tab is handled by globe.js.
    ============================================================ */
 
-const VIS = window.VIS_DATA || null;
 const PACKET = window.PACKET_DATA || null;
 const HANDOFF = window.HANDOFF_DATA || null;
 
@@ -40,7 +42,6 @@ function fmt(v, d = 2) { return Number(v).toFixed(d); }
 function hiDpi(canvas) {
   const w = canvas.width;
   const h = canvas.height;
-  // Don't set style.width/height — let CSS `width:100%` handle display sizing
   canvas.width  = w * DPR;
   canvas.height = h * DPR;
   const ctx = canvas.getContext("2d");
@@ -63,186 +64,7 @@ function initTabs() {
 }
 
 /* ============================================================
-   1. VISIBILITY GRAPH
-   ============================================================ */
-function setupVisibility() {
-  if (!VIS) return;
-
-  const stationSel  = byId("vis-station");
-  const minElevIn   = byId("vis-min-elev");
-  const minElevSpan = byId("vis-min-elev-val");
-  const showEdges   = byId("vis-show-edges");
-  const showSats    = byId("vis-show-sats");
-  const showStations= byId("vis-show-stations");
-  const statsEl     = byId("vis-stats");
-
-  // Populate station dropdown with "All" option
-  const allOpt = document.createElement("option");
-  allOpt.value = "-1";
-  allOpt.textContent = "All stations";
-  stationSel.appendChild(allOpt);
-
-  VIS.stations.forEach(s => {
-    const o = document.createElement("option");
-    o.value = s.id;
-    o.textContent = `${s.name}`;
-    stationSel.appendChild(o);
-  });
-  stationSel.value = "0"; // Redmond default
-
-  // Index edges by station
-  const edgesByStation = new Map();
-  VIS.edges.forEach(e => {
-    if (!edgesByStation.has(e.station)) edgesByStation.set(e.station, []);
-    edgesByStation.get(e.station).push(e);
-  });
-
-  const PAD = { top: 24, right: 20, bottom: 32, left: 44 };
-
-  function getFilteredEdges() {
-    const sid = Number(stationSel.value);
-    const minE = Number(minElevIn.value);
-    let edges;
-    if (sid === -1) {
-      edges = VIS.edges;
-    } else {
-      edges = edgesByStation.get(sid) || [];
-    }
-    return edges.filter(e => e.elev >= minE);
-  }
-
-  function updateStats() {
-    const edges = getFilteredEdges();
-    const n = edges.length;
-    if (n === 0) {
-      statsEl.innerHTML = [
-        card("Visible Edges", "0"),
-        card("Min Elevation", "--"),
-        card("Avg Elevation", "--"),
-        card("Avg Latency", "--"),
-        card("Satellites", VIS.satellites.length),
-      ].join("");
-      return;
-    }
-    let minE = 90, maxE = 0, sumE = 0, minL = 1e9, sumL = 0;
-    edges.forEach(e => {
-      minE = Math.min(minE, e.elev);
-      maxE = Math.max(maxE, e.elev);
-      sumE += e.elev;
-      minL = Math.min(minL, e.latency_ms);
-      sumL += e.latency_ms;
-    });
-    statsEl.innerHTML = [
-      card("Visible Edges", n),
-      card("Min Elevation", `${fmt(minE)}°`),
-      card("Max Elevation", `${fmt(maxE)}°`),
-      card("Avg Latency", `${fmt(sumL / n)} ms`),
-      card("Min Latency", `${fmt(minL)} ms`),
-    ].join("");
-  }
-
-  function project(lat, lon, w, h) {
-    const x = PAD.left + ((lon + 180) / 360) * (w - PAD.left - PAD.right);
-    const y = PAD.top  + ((90 - lat) / 180) * (h - PAD.top  - PAD.bottom);
-    return { x, y };
-  }
-
-  function draw() {
-    minElevSpan.textContent = `${minElevIn.value}°`;
-
-    const canvas = byId("vis-canvas");
-    const w = 1200, h = 520;
-    canvas.width = w; canvas.height = h;
-    const { ctx } = hiDpi(canvas);
-
-    // Background
-    ctx.fillStyle = C.bg;
-    ctx.fillRect(0, 0, w, h);
-
-    // Grid
-    ctx.strokeStyle = C.grid;
-    ctx.lineWidth = 0.5;
-    ctx.font = "10px 'JetBrains Mono', monospace";
-    ctx.fillStyle = C.gridLabel;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-
-    for (let lon = -180; lon <= 180; lon += 60) {
-      const { x } = project(0, lon, w, h);
-      ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, h - PAD.bottom); ctx.stroke();
-      ctx.fillText(`${lon}°`, x, h - PAD.bottom + 4);
-    }
-
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    for (let lat = -60; lat <= 60; lat += 30) {
-      const { y } = project(lat, 0, w, h);
-      ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(w - PAD.right, y); ctx.stroke();
-      ctx.fillText(`${lat}°`, PAD.left - 4, y);
-    }
-
-    const stationId = Number(stationSel.value);
-    const filteredEdges = getFilteredEdges();
-    const connectedSatIds = new Set(filteredEdges.map(e => e.sat));
-
-    // Edges
-    if (showEdges.checked) {
-      filteredEdges.forEach(edge => {
-        const sat = VIS.satellites[edge.sat];
-        const gs  = VIS.stations[edge.station];
-        if (!sat || !gs) return;
-        const s = project(sat.lat, sat.lon, w, h);
-        const g = project(gs.lat,  gs.lon,  w, h);
-        ctx.strokeStyle = C.redDim;
-        ctx.lineWidth = edge.elev > 50 ? 1.2 : 0.7;
-        ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(s.x, s.y); ctx.stroke();
-      });
-    }
-
-    // Satellites
-    if (showSats.checked) {
-      VIS.satellites.forEach(sat => {
-        const { x, y } = project(sat.lat, sat.lon, w, h);
-        const connected = connectedSatIds.has(sat.id);
-        ctx.fillStyle = connected ? C.white : C.dark;
-        ctx.beginPath();
-        ctx.arc(x, y, connected ? 2.5 : 1.4, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    // Stations
-    if (showStations.checked) {
-      VIS.stations.forEach(gs => {
-        const { x, y } = project(gs.lat, gs.lon, w, h);
-        const selected = (stationId === -1 || gs.id === stationId);
-        ctx.fillStyle = C.red;
-        ctx.beginPath();
-        ctx.arc(x, y, selected ? 4.5 : 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (selected && stationId !== -1) {
-          ctx.fillStyle = C.white;
-          ctx.font = "bold 10px 'Inter', sans-serif";
-          ctx.textAlign = "left";
-          ctx.textBaseline = "bottom";
-          ctx.fillText(gs.name, x + 7, y - 2);
-        }
-      });
-    }
-
-    updateStats();
-  }
-
-  [stationSel, minElevIn, showEdges, showSats, showStations].forEach(el => {
-    el.addEventListener(el.tagName === "SELECT" ? "change" : "input", draw);
-  });
-
-  draw();
-}
-
-/* ============================================================
-   2. PACKET ROUTER
+   1. PACKET ROUTER
    ============================================================ */
 function setupPacket() {
   if (!PACKET) return;
@@ -377,7 +199,7 @@ function setupPacket() {
 }
 
 /* ============================================================
-   3. HANDOFF SCHEDULER
+   2. HANDOFF SCHEDULER
    ============================================================ */
 function setupHandoff() {
   if (!HANDOFF) return;
@@ -477,19 +299,16 @@ function setupHandoff() {
       for (let s = 0; s <= steps; s++) {
         const frac = s / steps;
         const t = win.start + frac * (win.end - win.start);
-        // Parabolic model: peak at center, 0.7*peak at edges
         const mid = (win.start + win.end) / 2;
         const halfDur = (win.end - win.start) / 2;
         const norm = halfDur > 0 ? (t - mid) / halfDur : 0;
         const signal = win.peak * (1.0 - 0.3 * norm * norm);
-        // Map signal to bar height (0 dB = bottom, 30 dB = top)
         const signalNorm = Math.min(1, Math.max(0, signal / 30));
         const px = x1 + frac * barW;
         const py = y0 + barH - signalNorm * barH;
         if (s === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
-      // Close the shape
       ctx.lineTo(x2, y0 + barH);
       ctx.lineTo(x1, y0 + barH);
       ctx.closePath();
@@ -562,7 +381,6 @@ function setupHandoff() {
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
-  setupVisibility();
   setupPacket();
   setupHandoff();
 });

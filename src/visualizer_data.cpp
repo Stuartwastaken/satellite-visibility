@@ -64,7 +64,22 @@ struct Satellite {
     GeoCoord position;
     double altitude_km;
     int orbital_plane;
+    int shell_id;
     double capacity_mbps;
+    double x, y, z;  // 3D Cartesian for Three.js (unit = Earth radii)
+};
+
+struct OrbitalShell {
+    std::string name;
+    int num_planes;
+    int sats_per_plane;
+    double altitude_km;
+    double inclination_deg;
+};
+
+struct ISLLink {
+    int sat_a;
+    int sat_b;
 };
 
 struct GroundStation {
@@ -139,33 +154,88 @@ double computeLatencyMs(double slant_km) {
     return slant_km / 299.792;
 }
 
+// ---- 3D coordinate helpers ----
+struct Vec3 { double x, y, z; };
+
+Vec3 geoTo3D(double lat_deg, double lon_deg, double altitude_km) {
+    double lat = lat_deg * DEG_TO_RAD;
+    double lon = lon_deg * DEG_TO_RAD;
+    double r = (EARTH_RADIUS_KM + altitude_km) / EARTH_RADIUS_KM;
+    return {
+        r * std::cos(lat) * std::cos(lon),
+        r * std::sin(lat),
+       -r * std::cos(lat) * std::sin(lon)
+    };
+}
+
+// ---- Full multi-shell constellation generator ----
+std::vector<Satellite> generateFullConstellation(
+    const std::vector<OrbitalShell>& shells) {
+    std::vector<Satellite> sats;
+    int global_id = 0;
+
+    for (int shell_idx = 0; shell_idx < static_cast<int>(shells.size()); shell_idx++) {
+        const auto& shell = shells[shell_idx];
+        for (int p = 0; p < shell.num_planes; p++) {
+            double raan = (360.0 / shell.num_planes) * p;
+            for (int s = 0; s < shell.sats_per_plane; s++) {
+                double true_anomaly = (360.0 / shell.sats_per_plane) * s;
+                double angle = (raan + true_anomaly) * DEG_TO_RAD;
+                double lat = shell.inclination_deg * std::sin(angle);
+                double lon = std::fmod(
+                    raan + true_anomaly *
+                           std::cos(shell.inclination_deg * DEG_TO_RAD),
+                    360.0) - 180.0;
+
+                Vec3 pos = geoTo3D(lat, lon, shell.altitude_km);
+
+                sats.push_back({
+                    global_id++,
+                    {lat, lon},
+                    shell.altitude_km,
+                    p,
+                    shell_idx,
+                    250.0,
+                    pos.x, pos.y, pos.z
+                });
+            }
+        }
+    }
+    return sats;
+}
+
+// ---- Intra-plane ISL link computation ----
+std::vector<ISLLink> computeIntraPlaneLinks(
+    const std::vector<Satellite>& sats,
+    const std::vector<OrbitalShell>& shells) {
+    std::vector<ISLLink> links;
+
+    // Since satellites are generated in order: shell -> plane -> sat,
+    // we can compute offsets directly.
+    int offset = 0;
+    for (int si = 0; si < static_cast<int>(shells.size()); si++) {
+        const auto& shell = shells[si];
+        for (int p = 0; p < shell.num_planes; p++) {
+            int base = offset + p * shell.sats_per_plane;
+            for (int s = 0; s < shell.sats_per_plane; s++) {
+                int a = base + s;
+                int b = base + (s + 1) % shell.sats_per_plane;
+                links.push_back({sats[a].id, sats[b].id});
+            }
+        }
+        offset += shell.num_planes * shell.sats_per_plane;
+    }
+    return links;
+}
+
+// ---- Legacy single-shell generator (used by other executables) ----
 std::vector<Satellite> generateStarlinkConstellation(int num_planes,
                                                      int sats_per_plane,
                                                      double altitude_km,
                                                      double inclination_deg) {
-    std::vector<Satellite> sats;
-    int id = 0;
-
-    for (int p = 0; p < num_planes; p++) {
-        double raan = (360.0 / num_planes) * p;
-        for (int s = 0; s < sats_per_plane; s++) {
-            double true_anomaly = (360.0 / sats_per_plane) * s;
-            double angle = (raan + true_anomaly) * DEG_TO_RAD;
-            double lat = inclination_deg * std::sin(angle);
-            double lon = std::fmod(raan + true_anomaly *
-                                          std::cos(inclination_deg * DEG_TO_RAD),
-                                   360.0) -
-                         180.0;
-            sats.push_back({
-                id++,
-                {lat, lon},
-                altitude_km,
-                p,
-                250.0
-            });
-        }
-    }
-    return sats;
+    OrbitalShell shell{"default", num_planes, sats_per_plane,
+                       altitude_km, inclination_deg};
+    return generateFullConstellation({shell});
 }
 
 std::vector<GroundStation> generateGroundStations(int count) {
@@ -808,6 +878,79 @@ std::string buildHandoffJson(const Args& args,
 }
 
 // ============================================================
+// Globe JSON Builder
+// ============================================================
+std::string buildGlobeJson(const std::vector<OrbitalShell>& shells,
+                           const std::vector<Satellite>& sats,
+                           const std::vector<ISLLink>& links,
+                           const std::vector<GroundStation>& stations) {
+    std::ostringstream os;
+    os << std::fixed << std::setprecision(6);
+
+    os << "{";
+
+    // Meta
+    os << "\"meta\":{";
+    os << "\"total_satellites\":" << sats.size() << ",";
+    os << "\"total_isl_links\":" << links.size() << ",";
+    os << "\"shells\":[";
+    for (size_t i = 0; i < shells.size(); i++) {
+        const auto& sh = shells[i];
+        if (i) os << ",";
+        os << "{"
+           << "\"name\":\"" << jsonEscape(sh.name) << "\","
+           << "\"planes\":" << sh.num_planes << ","
+           << "\"sats_per_plane\":" << sh.sats_per_plane << ","
+           << "\"altitude_km\":" << sh.altitude_km << ","
+           << "\"inclination_deg\":" << sh.inclination_deg
+           << "}";
+    }
+    os << "]},";
+
+    // Satellites (3D coords only, no lat/lon to keep JSON small)
+    os << "\"satellites\":[";
+    for (size_t i = 0; i < sats.size(); i++) {
+        const auto& s = sats[i];
+        if (i) os << ",";
+        os << "{\"id\":" << s.id
+           << ",\"s\":" << s.shell_id
+           << ",\"p\":" << s.orbital_plane
+           << ",\"x\":" << s.x
+           << ",\"y\":" << s.y
+           << ",\"z\":" << s.z
+           << "}";
+    }
+    os << "],";
+
+    // ISL links (compact: flat array of pairs)
+    os << "\"isl_links\":[";
+    for (size_t i = 0; i < links.size(); i++) {
+        if (i) os << ",";
+        os << "[" << links[i].sat_a << "," << links[i].sat_b << "]";
+    }
+    os << "],";
+
+    // Ground stations with 3D coords
+    os << "\"stations\":[";
+    for (size_t i = 0; i < stations.size(); i++) {
+        const auto& gs = stations[i];
+        if (i) os << ",";
+        Vec3 pos = geoTo3D(gs.position.lat_deg, gs.position.lon_deg, 0.0);
+        os << "{"
+           << "\"id\":" << gs.id << ","
+           << "\"name\":\"" << jsonEscape(gs.name) << "\","
+           << "\"x\":" << pos.x << ","
+           << "\"y\":" << pos.y << ","
+           << "\"z\":" << pos.z
+           << "}";
+    }
+    os << "]";
+
+    os << "}";
+    return os.str();
+}
+
+// ============================================================
 // Main
 // ============================================================
 int main(int argc, char** argv) {
@@ -818,29 +961,37 @@ int main(int argc, char** argv) {
 
     std::cout << "Generating visualizer data...\n";
 
-    // Visibility graph
-    auto satellites = generateStarlinkConstellation(
-        args.num_planes, args.sats_per_plane, args.altitude_km,
-        args.inclination_deg);
+    // ---- 3D Globe: Full multi-shell constellation ----
+    std::vector<OrbitalShell> shells = {
+        {"Gen1 Main",   72, 22, 550.0, 53.0},
+        {"Gen1 Backup", 72, 22, 540.0, 53.2},
+        {"Polar",       36, 20, 570.0, 70.0},
+        {"SSO",          6, 58, 560.0, 97.6},
+        {"Gen2",       120, 45, 525.0, 53.0},
+    };
+    auto globe_sats = generateFullConstellation(shells);
+    auto isl_links = computeIntraPlaneLinks(globe_sats, shells);
     auto stations = generateGroundStations(args.num_stations);
-    VisibilityStats vis_stats;
-    auto edges = buildVisibilityEdges(
-        satellites, stations, args.min_elevation_deg, vis_stats);
-    auto vis_json = buildVisibilityJson(args, satellites, stations, edges, vis_stats);
 
-    // Packet router
+    std::cout << "  Globe: " << globe_sats.size() << " satellites, "
+              << isl_links.size() << " ISL links, "
+              << shells.size() << " shells\n";
+
+    auto globe_json = buildGlobeJson(shells, globe_sats, isl_links, stations);
+
+    // ---- Packet router (unchanged) ----
     auto packet_stats = simulatePacketStream(
         args.num_packets, args.num_queues, args.reorder_prob,
         args.drop_prob, args.seed);
     auto packet_json = buildPacketJson(packet_stats);
 
-    // Handoff scheduler
+    // ---- Handoff scheduler (unchanged) ----
     auto windows = generateWindows(
         args.num_handoff_sats, args.handoff_time_sec, args.seed + 1);
     auto handoff_result = HandoffScheduler::schedule(windows);
     auto handoff_json = buildHandoffJson(args, windows, handoff_result);
 
-    // Output
+    // ---- Write output ----
     std::filesystem::path out_dir = VISUALIZER_DATA_DIR;
     std::filesystem::create_directories(out_dir);
     std::filesystem::path out_path = out_dir / "data.js";
@@ -851,7 +1002,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    out << "window.VIS_DATA=" << vis_json << ";\n";
+    out << "window.GLOBE_DATA=" << globe_json << ";\n";
     out << "window.PACKET_DATA=" << packet_json << ";\n";
     out << "window.HANDOFF_DATA=" << handoff_json << ";\n";
     out.close();
