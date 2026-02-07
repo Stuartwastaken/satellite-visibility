@@ -12,6 +12,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined -fno-omit-frame-point
 add_executable(satellite_visibility src/main.cpp)
 add_executable(packet_router src/packet_router.cpp)
 add_executable(handoff_scheduler src/handoff_scheduler.cpp)
+add_executable(visualizer_data src/visualizer_data.cpp)
+
+target_compile_definitions(
+  visualizer_data PRIVATE
+  VISUALIZER_DATA_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/visualizer/data\"
+)
 
 # Tests
 enable_testing()

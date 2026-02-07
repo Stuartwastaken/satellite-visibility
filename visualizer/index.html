@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Starlink C++ Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <h1>Starlink C++ Visualizer</h1>
+        <p>
+          Interactive visuals for the C++ interview prep projects:
+          visibility graph, packet routing, and handoff scheduling.
+        </p>
+      </div>
+      <div class="header-actions">
+        <div class="badge">Data source: <code>visualizer/data/data.js</code></div>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-button active" data-tab="visibility">Visibility Graph</button>
+      <button class="tab-button" data-tab="packet">Packet Router</button>
+      <button class="tab-button" data-tab="handoff">Handoff Scheduler</button>
+    </nav>
+
+    <main>
+      <!-- Visibility Graph -->
+      <section id="visibility" class="tab-panel active">
+        <div class="panel-header">
+          <h2>Satellite Visibility Graph</h2>
+          <p>Lat/Lon projection with per-station visibility edges.</p>
+        </div>
+
+        <div class="controls">
+          <label>
+            Station
+            <select id="vis-station"></select>
+          </label>
+
+          <label>
+            Min elevation
+            <input id="vis-min-elev" type="range" min="0" max="60" step="1" value="25">
+            <span id="vis-min-elev-val">25°</span>
+          </label>
+
+          <label class="checkbox">
+            <input id="vis-show-edges" type="checkbox" checked>
+            Show edges
+          </label>
+
+          <label class="checkbox">
+            <input id="vis-show-sats" type="checkbox" checked>
+            Show satellites
+          </label>
+
+          <label class="checkbox">
+            <input id="vis-show-stations" type="checkbox" checked>
+            Show stations
+          </label>
+        </div>
+
+        <div class="stats-grid" id="vis-stats"></div>
+
+        <div class="canvas-wrap">
+          <canvas id="vis-canvas" width="1000" height="480"></canvas>
+        </div>
+      </section>
+
+      <!-- Packet Router -->
+      <section id="packet" class="tab-panel">
+        <div class="panel-header">
+          <h2>Packet Reordering + Priority Routing</h2>
+          <p>Arrival order vs. sequence number (scatter), colored by priority.</p>
+        </div>
+
+        <div class="controls">
+          <label class="checkbox">
+            <input id="pkt-show-control" type="checkbox" checked>
+            Control
+          </label>
+          <label class="checkbox">
+            <input id="pkt-show-realtime" type="checkbox" checked>
+            Real-time
+          </label>
+          <label class="checkbox">
+            <input id="pkt-show-streaming" type="checkbox" checked>
+            Streaming
+          </label>
+          <label class="checkbox">
+            <input id="pkt-show-bulk" type="checkbox" checked>
+            Bulk
+          </label>
+        </div>
+
+        <div class="stats-grid" id="pkt-stats"></div>
+
+        <div class="canvas-wrap">
+          <canvas id="pkt-canvas" width="1000" height="480"></canvas>
+        </div>
+      </section>
+
+      <!-- Handoff Scheduler -->
+      <section id="handoff" class="tab-panel">
+        <div class="panel-header">
+          <h2>Satellite Handoff Scheduler</h2>
+          <p>Visibility windows over time with computed handoff points.</p>
+        </div>
+
+        <div class="stats-grid" id="handoff-stats"></div>
+
+        <div class="canvas-wrap">
+          <canvas id="handoff-canvas" width="1000" height="480"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Tip: regenerate data with <code>./visualizer_data</code> for new scenarios.</span>
+    </footer>
+
+    <script src="data/data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

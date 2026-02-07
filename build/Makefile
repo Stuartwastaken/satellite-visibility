@@ -166,6 +166,19 @@ handoff_scheduler/fast:
 .PHONY : handoff_scheduler/fast
 
 #=============================================================================
+# Target rules for targets named visualizer_data
+
+# Build rule for target.
+visualizer_data: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 visualizer_data
+.PHONY : visualizer_data
+
+# fast build rule for target.
+visualizer_data/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/build
+.PHONY : visualizer_data/fast
+
+#=============================================================================
 # Target rules for targets named tests
 
 # Build rule for target.
@@ -250,6 +263,30 @@ src/packet_router.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/packet_router.dir/build.make CMakeFiles/packet_router.dir/src/packet_router.cpp.s
 .PHONY : src/packet_router.cpp.s
 
+src/visualizer_data.o: src/visualizer_data.cpp.o
+.PHONY : src/visualizer_data.o
+
+# target to build an object file
+src/visualizer_data.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/src/visualizer_data.cpp.o
+.PHONY : src/visualizer_data.cpp.o
+
+src/visualizer_data.i: src/visualizer_data.cpp.i
+.PHONY : src/visualizer_data.i
+
+# target to preprocess a source file
+src/visualizer_data.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/src/visualizer_data.cpp.i
+.PHONY : src/visualizer_data.cpp.i
+
+src/visualizer_data.s: src/visualizer_data.cpp.s
+.PHONY : src/visualizer_data.s
+
+# target to generate assembly for a file
+src/visualizer_data.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/src/visualizer_data.cpp.s
+.PHONY : src/visualizer_data.cpp.s
+
 test/test_visibility.o: test/test_visibility.cpp.o
 .PHONY : test/test_visibility.o
 
@@ -287,6 +324,7 @@ help:
 	@echo "... packet_router"
 	@echo "... satellite_visibility"
 	@echo "... tests"
+	@echo "... visualizer_data"
 	@echo "... src/handoff_scheduler.o"
 	@echo "... src/handoff_scheduler.i"
 	@echo "... src/handoff_scheduler.s"
@@ -296,6 +334,9 @@ help:
 	@echo "... src/packet_router.o"
 	@echo "... src/packet_router.i"
 	@echo "... src/packet_router.s"
+	@echo "... src/visualizer_data.o"
+	@echo "... src/visualizer_data.i"
+	@echo "... src/visualizer_data.s"
 	@echo "... test/test_visibility.o"
 	@echo "... test/test_visibility.i"
 	@echo "... test/test_visibility.s"

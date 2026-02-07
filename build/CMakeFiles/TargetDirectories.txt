@@ -1,6 +1,7 @@
 /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/satellite_visibility.dir
 /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/packet_router.dir
 /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/handoff_scheduler.dir
+/Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/visualizer_data.dir
 /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/tests.dir
 /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/test.dir
 /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles/edit_cache.dir

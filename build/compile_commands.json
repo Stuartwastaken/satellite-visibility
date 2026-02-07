@@ -19,6 +19,12 @@
 },
 {
   "directory": "/Users/stuart/development/spacex/projects/satellite-visibility/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -DVISUALIZER_DATA_DIR=\\\"/Users/stuart/development/spacex/projects/satellite-visibility/visualizer/data\\\"  -O2 -DNDEBUG -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk -o CMakeFiles/visualizer_data.dir/src/visualizer_data.cpp.o -c /Users/stuart/development/spacex/projects/satellite-visibility/src/visualizer_data.cpp",
+  "file": "/Users/stuart/development/spacex/projects/satellite-visibility/src/visualizer_data.cpp",
+  "output": "CMakeFiles/visualizer_data.dir/src/visualizer_data.cpp.o"
+},
+{
+  "directory": "/Users/stuart/development/spacex/projects/satellite-visibility/build",
   "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -O2 -DNDEBUG -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk -o CMakeFiles/tests.dir/test/test_visibility.cpp.o -c /Users/stuart/development/spacex/projects/satellite-visibility/test/test_visibility.cpp",
   "file": "/Users/stuart/development/spacex/projects/satellite-visibility/test/test_visibility.cpp",
   "output": "CMakeFiles/tests.dir/test/test_visibility.cpp.o"

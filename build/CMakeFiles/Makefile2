@@ -66,6 +66,7 @@ CMAKE_BINARY_DIR = /Users/stuart/development/spacex/projects/satellite-visibilit
 all: CMakeFiles/satellite_visibility.dir/all
 all: CMakeFiles/packet_router.dir/all
 all: CMakeFiles/handoff_scheduler.dir/all
+all: CMakeFiles/visualizer_data.dir/all
 all: CMakeFiles/tests.dir/all
 .PHONY : all
 
@@ -77,6 +78,7 @@ preinstall:
 clean: CMakeFiles/satellite_visibility.dir/clean
 clean: CMakeFiles/packet_router.dir/clean
 clean: CMakeFiles/handoff_scheduler.dir/clean
+clean: CMakeFiles/visualizer_data.dir/clean
 clean: CMakeFiles/tests.dir/clean
 .PHONY : clean
 
@@ -157,6 +159,32 @@ handoff_scheduler: CMakeFiles/handoff_scheduler.dir/rule
 CMakeFiles/handoff_scheduler.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/handoff_scheduler.dir/build.make CMakeFiles/handoff_scheduler.dir/clean
 .PHONY : CMakeFiles/handoff_scheduler.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/visualizer_data.dir
+
+# All Build rule for target.
+CMakeFiles/visualizer_data.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles --progress-num=9,10 "Built target visualizer_data"
+.PHONY : CMakeFiles/visualizer_data.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/visualizer_data.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/visualizer_data.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/stuart/development/spacex/projects/satellite-visibility/build/CMakeFiles 0
+.PHONY : CMakeFiles/visualizer_data.dir/rule
+
+# Convenience name for target.
+visualizer_data: CMakeFiles/visualizer_data.dir/rule
+.PHONY : visualizer_data
+
+# clean rule for target.
+CMakeFiles/visualizer_data.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_data.dir/build.make CMakeFiles/visualizer_data.dir/clean
+.PHONY : CMakeFiles/visualizer_data.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/tests.dir
