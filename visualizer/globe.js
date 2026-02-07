@@ -156,10 +156,14 @@ function init() {
   controls.minPolarAngle = 0.3;
   controls.maxPolarAngle = Math.PI - 0.3;
 
-  scene.add(new THREE.AmbientLight(0x333344, 2.0));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+  scene.add(new THREE.AmbientLight(0x667788, 3.0));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(5, 3, 5);
   scene.add(dir);
+  // Fill light from opposite side so continents visible during rotation
+  const fill = new THREE.DirectionalLight(0x556688, 0.6);
+  fill.position.set(-4, -2, -3);
+  scene.add(fill);
 
   buildStarfield();
   buildEarth();
@@ -195,15 +199,60 @@ function buildStarfield() {
 }
 
 /* ============================================================
-   Earth
+   Earth — NASA Blue Marble texture (public domain)
+   Loads asynchronously; shows dark placeholder until ready.
    ============================================================ */
 function buildEarth() {
   const g = new THREE.SphereGeometry(1, 64, 64);
+
+  // Dark placeholder material (shown while texture loads)
   const m = new THREE.MeshPhongMaterial({
-    color: 0x0a0e18, emissive: 0x030508,
-    specular: 0x0a0a1a, shininess: 10,
+    color: 0x1a2a44,
+    emissive: 0x050a14,
+    specular: 0x111122,
+    shininess: 15,
   });
-  scene.add(new THREE.Mesh(g, m));
+  const earth = new THREE.Mesh(g, m);
+  scene.add(earth);
+
+  // Load Earth textures from CDN (NASA public domain via three-globe)
+  const loader = new THREE.TextureLoader();
+  const EARTH_DAY   = "https://unpkg.com/three-globe@2.41.12/example/img/earth-blue-marble.jpg";
+  const EARTH_NIGHT = "https://unpkg.com/three-globe@2.41.12/example/img/earth-night.jpg";
+  const EARTH_TOPO  = "https://unpkg.com/three-globe@2.41.12/example/img/earth-topology.png";
+  const EARTH_WATER = "https://unpkg.com/three-globe@2.41.12/example/img/earth-water.png";
+
+  // Load blue marble first (continent map), then layer night (city lights)
+  loader.load(EARTH_DAY, (dayTex) => {
+    dayTex.colorSpace = THREE.SRGBColorSpace;
+
+    loader.load(EARTH_NIGHT, (nightTex) => {
+      nightTex.colorSpace = THREE.SRGBColorSpace;
+
+      earth.material = new THREE.MeshPhongMaterial({
+        map: dayTex,                // continents, oceans, landmass detail
+        emissiveMap: nightTex,      // city lights glow on dark side
+        emissive: 0xffeecc,         // warm glow for city lights
+        emissiveIntensity: 0.6,
+        color: 0xaabbdd,            // cool tint, bright enough to show continents
+        specular: 0x222233,
+        shininess: 20,
+      });
+
+      // Add bump map for surface topology
+      loader.load(EARTH_TOPO, (topoTex) => {
+        earth.material.bumpMap = topoTex;
+        earth.material.bumpScale = 0.015;
+        earth.material.needsUpdate = true;
+      });
+
+      // Add water specular for ocean shine
+      loader.load(EARTH_WATER, (waterTex) => {
+        earth.material.specularMap = waterTex;
+        earth.material.needsUpdate = true;
+      });
+    });
+  });
 }
 
 /* ============================================================
