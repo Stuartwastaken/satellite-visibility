@@ -2,7 +2,7 @@
 
 **[Live Demo](https://satellite-visibility.vercel.app/)**
 
-A weekend project simulating core Starlink ground station engineering challenges in C++17: **orbital mechanics, packet routing, and satellite handoff scheduling** — with an interactive WebGL visualizer.
+A weekend project simulating core Starlink ground station engineering challenges in C++17: **orbital mechanics, packet routing, and satellite handoff scheduling** — with an interactive WebGL visualizer. Inspired by https://satellitemap.space/constellation/starlink
 
 The C++ backend computes the full constellation state, and the browser renders it. This mirrors real ground station architecture: high-performance compiled code for compute, lightweight frontends for operations.
 
